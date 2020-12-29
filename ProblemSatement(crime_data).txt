@@ -1,0 +1,251 @@
+Perform Clustering for the crime data and identify the number of clusters formed and draw inferences.
+
+Data Description:
+Murder -- Muder rates in different places of United States
+Assualt- Assualt rate in different places of United States
+UrbanPop - urban population in different places of United States
+Rape - Rape rate in different places of United States
+
+Ans-crime_data_sub <- crime_data[,2:5]
+
+ 
+
+# Normalized the data
+
+norm_crime_data_sub <- scale(crime_data_sub)
+
+ 
+
+# calculating distance
+
+ 
+
+d <- dist(norm_crime_data_sub, method = "euclidean")
+
+ 
+
+str(d)
+## Class 'dist'  atomic [1:1225] 2.7 2.29 1.29 3.26 2.65 ...
+##   ..- attr(*, "Size")= int 50
+##   ..- attr(*, "Diag")= logi FALSE
+##   ..- attr(*, "Upper")= logi FALSE
+##   ..- attr(*, "method")= chr "euclidean"
+##   ..- attr(*, "call")= language dist(x = norm_crime_data_sub, method = "euclidean")
+crime_cluse <- hclust(d, method = "complete")
+
+ 
+
+plot(crime_cluse, hang=-1)
+
+ 
+
+rect.hclust(crime_cluse,plot(crime_cluse,hang=-1),k=4,border="red")
+
+
+groups <- cutree(crime_cluse,k=4)
+
+ 
+
+crime_data_final <- cbind(crime_data, groups)
+
+ 
+
+aggregate(crime_data_final[,2:6], by=list(crime_data_final$groups), FUN = mean)
+##   Group.1    Murder  Assault UrbanPop     Rape groups
+## 1       1 14.087500 252.7500 53.50000 24.53750      1
+## 2       2 11.054545 264.0909 79.09091 32.61818      2
+## 3       3  5.871429 134.4762 70.76190 18.58095      3
+## 4       4  3.180000  78.7000 49.30000 11.63000      4
+As per summary we can say group 2 have the higher rate of crime.
+
+Perform clustering (Both hierarchical and K means clustering) for the airlines data to obtain optimum number of clusters. Draw the inferences from the clusters obtained.
+library(data.table)
+
+ 
+
+library(readxl)
+
+ 
+
+EastWestAirlines <- read_xlsx("C:/Users/Pawan Srivastav/Desktop/Data Science/Assignment/Clustering/EastWestAirlines.xlsx", sheet = "data")
+
+ 
+
+#View(EastWestAirlines)
+
+colnames(EastWestAirlines)
+##  [1] "ID#"               "Balance"           "Qual_miles"       
+##  [4] "cc1_miles"         "cc2_miles"         "cc3_miles"        
+##  [7] "Bonus_miles"       "Bonus_trans"       "Flight_miles_12mo"
+## [10] "Flight_trans_12"   "Days_since_enroll" "Award?"
+ncol(EastWestAirlines)
+## [1] 12
+sub_EastWestAirlines <- EastWestAirlines[,2:12]
+
+ 
+
+ 
+
+norm_airline <- scale(sub_EastWestAirlines)
+
+ 
+
+# Hirerachical CLustering
+
+ 
+
+distanct_airline <- dist(norm_airline,method="euclidean")
+
+ 
+
+str(distanct_airline)
+## Class 'dist'  atomic [1:7994001] 0.137 0.377 0.135 4.774 0.159 ...
+##   ..- attr(*, "Size")= int 3999
+##   ..- attr(*, "Diag")= logi FALSE
+##   ..- attr(*, "Upper")= logi FALSE
+##   ..- attr(*, "method")= chr "euclidean"
+##   ..- attr(*, "call")= language dist(x = norm_airline, method = "euclidean")
+airline_clust <- hclust(distanct_airline, method = "complete")
+
+ 
+
+#plot(airline_clust, hang = -1)
+
+ 
+
+group_airline <- cutree(airline_clust,k=5)
+
+ 
+
+EastWestAirlines_New <- cbind(EastWestAirlines, group_airline)
+
+ 
+
+setnames(EastWestAirlines_New, 'group_airline', 'group_hclust')
+
+ 
+
+aggregate(EastWestAirlines_New[,2:12],by= list(EastWestAirlines_New$group_hclust), FUN = mean)
+##   Group.1   Balance Qual_miles cc1_miles cc2_miles cc3_miles Bonus_miles
+## 1       1  65902.07   137.3707  2.033580  1.000000  1.000793    15571.37
+## 2       2 117123.66   255.7529  2.252941  1.341176  1.000000    37437.17
+## 3       3 806433.29   383.2143  3.571429  1.000000  1.000000    58412.32
+## 4       4 138061.40    78.8000  3.466667  1.000000  4.066667    93927.87
+## 5       5 131999.50   347.0000  2.500000  1.000000  1.000000    65634.25
+##   Bonus_trans Flight_miles_12mo Flight_trans_12 Days_since_enroll
+## 1    10.72448          270.5854       0.8183501          4072.295
+## 2    26.72941         4066.6235      11.8823529          4701.688
+## 3    21.21429         1344.3929       5.6071429          6835.893
+## 4    28.06667          506.6667       1.6000000          4613.867
+## 5    69.25000        19960.0000      49.2500000          2200.250
+##      Award?
+## 1 0.3503437
+## 2 0.7058824
+## 3 0.8571429
+## 4 0.5333333
+## 5 1.0000000
+# K-MEANS CLustering
+
+ 
+
+ 
+
+airline_kmeans <- kmeans(norm_airline,5)
+
+ 
+
+str(airline_kmeans)
+## List of 9
+##  $ cluster     : int [1:3999] 3 3 3 3 5 3 5 4 1 5 ...
+##  $ centers     : num [1:5, 1:11] 1.218 -0.388 -0.136 -0.154 0.655 ...
+##   ..- attr(*, "dimnames")=List of 2
+##   .. ..$ : chr [1:5] "1" "2" "3" "4" ...
+##   .. ..$ : chr [1:11] "Balance" "Qual_miles" "cc1_miles" "cc2_miles" ...
+##  $ totss       : num 43978
+##  $ withinss    : num [1:5] 4675 3408 3928 4910 10049
+##  $ tot.withinss: num 26969
+##  $ betweenss   : num 17009
+##  $ size        : int [1:5] 144 1183 992 843 837
+##  $ iter        : int 5
+##  $ ifault      : int 0
+##  - attr(*, "class")= chr "kmeans"
+airline_kmeans$centers
+##      Balance   Qual_miles  cc1_miles   cc2_miles   cc3_miles Bonus_miles
+## 1  1.2178769  0.813907828  0.1383415  0.18396880 -0.06275873   0.6889574
+## 2 -0.3882348 -0.065746914 -0.5896057 -0.02380365 -0.06275873  -0.5265790
+## 3 -0.1357096 -0.095034575 -0.4107454  0.04514539 -0.05759555  -0.4449899
+## 4 -0.1538903  0.062553727 -0.2542949  0.03031629 -0.06275873  -0.2590876
+## 5  0.6550310  0.002529724  1.5524640 -0.08204618  0.23096921   1.4140668
+##   Bonus_trans Flight_miles_12mo Flight_trans_12 Days_since_enroll
+## 1  1.76024342        3.75652193      4.08482939        0.25761184
+## 2 -0.51799040       -0.22785569     -0.25047473       -0.97888528
+## 3 -0.31343462       -0.20135119     -0.22233407        0.73057271
+## 4 -0.08490626       -0.03187798     -0.03125402        0.07359516
+## 5  0.88627324       -0.05349147     -0.05376499        0.39923099
+##       Award?
+## 1  0.9011426
+## 2 -0.7668234
+## 3 -0.7668234
+## 4  1.3037551
+## 5  0.5245051
+EastWestAirlines_New <- cbind(EastWestAirlines_New, airline_kmeans$cluster)
+
+ 
+
+colnames(EastWestAirlines_New)
+##  [1] "ID#"                    "Balance"               
+##  [3] "Qual_miles"             "cc1_miles"             
+##  [5] "cc2_miles"              "cc3_miles"             
+##  [7] "Bonus_miles"            "Bonus_trans"           
+##  [9] "Flight_miles_12mo"      "Flight_trans_12"       
+## [11] "Days_since_enroll"      "Award?"                
+## [13] "group_hclust"           "airline_kmeans$cluster"
+# Aggregate
+
+ 
+
+aggregate(EastWestAirlines_New[,2:12],by= list(EastWestAirlines_New$`airline_kmeans$cluster`), FUN = mean)
+##   Group.1   Balance Qual_miles cc1_miles cc2_miles cc3_miles Bonus_miles
+## 1       1 196333.68  773.80556  2.250000  1.041667  1.000000   33783.833
+## 2       2  34476.71   93.24852  1.247675  1.010989  1.000000    4427.454
+## 3       3  59925.10   70.58972  1.493952  1.021169  1.001008    6397.910
+## 4       4  58092.93  192.51008  1.709371  1.018980  1.000000   10887.630
+## 5       5 139612.51  146.07168  4.197133  1.002389  1.057348   51295.927
+##   Bonus_trans Flight_miles_12mo Flight_trans_12 Days_since_enroll
+## 1   28.506944         5719.9722      16.8680556          4650.562
+## 2    6.627219          141.0101       0.4234996          2097.030
+## 3    8.591734          178.1220       0.5302419          5627.290
+## 4   10.786477          415.4199       1.2550415          4270.543
+## 5   20.113501          385.1565       1.1696535          4943.025
+##      Award?
+## 1 0.8055556
+## 2 0.0000000
+## 3 0.0000000
+## 4 1.0000000
+## 5 0.6236559
+# install.packages("cluster")
+
+ 
+
+library(cluster)
+
+ 
+
+# Using Clara function(Clustering for Large Applications) to find cluster
+
+xcl <- clara(norm_airline,5) #Using Centroid
+
+ 
+
+clusplot(xcl)
+
+
+#using Partition Arround Medoids to find cluster
+
+xpm <- pam(norm_airline,5) # Using Medoids
+
+ 
+
+clusplot(xpm)
+
+ 

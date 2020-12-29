@@ -1,0 +1,300 @@
+Perform clustering (Both hierarchical and K means clustering) for the airlines data to obtain optimum number of clusters. 
+Draw the inferences from the clusters obtained.
+
+Data Description:
+ 
+The file EastWestAirlinescontains information on passengers who belong to an airline’s frequent flier program. For each passenger the data include information on their mileage history and on different ways they accrued or spent miles in the last year. The goal is to try to identify clusters of passengers that have similar characteristics for the purpose of targeting different segments for different types of mileage offers
+
+ID --Unique ID
+
+Balance--Number of miles eligible for award travel
+
+Qual_mile--Number of miles counted as qualifying for Topflight status
+
+cc1_miles -- Number of miles earned with freq. flyer credit card in the past 12 months:
+cc2_miles -- Number of miles earned with Rewards credit card in the past 12 months:
+cc3_miles -- Number of miles earned with Small Business credit card in the past 12 months:
+
+1 = under 5,000
+2 = 5,000 - 10,000
+3 = 10,001 - 25,000
+4 = 25,001 - 50,000
+5 = over 50,000
+
+Bonus_miles--Number of miles earned from non-flight bonus transactions in the past 12 months
+
+Bonus_trans--Number of non-flight bonus transactions in the past 12 months
+
+Flight_miles_12mo--Number of flight miles in the past 12 months
+
+Flight_trans_12--Number of flight transactions in the past 12 months
+
+Days_since_enrolled--Number of days since enrolled in flier program
+
+Award--whether that person had award flight (free flight) or not
+
+Ans-
+library("xlsx")
+## Loading required package: rJava
+## Loading required package: xlsxjars
+library("dummies")
+## dummies-1.5.6 provided by Decision Patterns
+input <- read.xlsx('Y:\\Knowledge Repository\\ISB\\DMG\\IndividualAssignment1\\EastWestAirlinesCluster.xlsx', 3, header = TRUE)
+mydata <- input[1:3999,2:12] ## exclude the columns with university and state names
+normalized_data <- scale(mydata) ## normalize the columns
+set.seed(1112)
+
+d <- dist(normalized_data, method = "euclidean") 
+fit <- hclust(d, method="ward.D2")
+plot(fit) # display dendrogram
+
+
+As per the above displayed dendogram, if we cut the dendogram at height 120, we get two clusters. But it really depends on the business case to chose the number of clusters. If we want to get 3 clusters we could cut the tree at height as shown in the below plot.
+
+plot(fit) # display dendrogram
+rect.hclust(fit, k=3, border="red")
+
+
+c) Compare cluster centroids to characterize different clusters and try to give each cluster a label-a meaningful name that characterizes the cluster.
+
+d <- dist(normalized_data, method = "euclidean") 
+fit <- hclust(d, method="complete")
+options(scipen=99999999)
+
+groups <- cutree(fit, k=3)
+
+clust.centroid = function(i, dat, groups) {
+  ind = (groups == i)
+  colMeans(dat[ind,])
+}
+sapply(unique(groups), clust.centroid, mydata, groups)
+##                            [,1]           [,2]      [,3]
+## Balance           73299.6959799 138061.4000000 131999.50
+## Qual_miles          144.1567839     78.8000000    347.00
+## cc1_miles             2.0537688      3.4666667      2.50
+## cc2_miles             1.0145729      1.0000000      1.00
+## cc3_miles             1.0007538      4.0666667      1.00
+## Bonus_miles       16806.7298995  93927.8666667  65634.25
+## Bonus_trans          11.4819095     28.0666667     69.25
+## Flight_miles_12mo   440.2821608    506.6666667  19960.00
+## Flight_trans_12       1.3246231      1.6000000     49.25
+## Days_since_enroll  4118.6206030   4613.8666667   2200.25
+## Award.                0.3690955      0.5333333      1.00
+From the above table we can say that,
+
+Label 1 cluster mainly presents fliers from middle income group or the frequent fliers with economy class. Label 2 cluster contains frequent fliers purchasing business class tickets or may be of high income group people. Label 3 cluster consists of fliers who are not frequent or first time fliers, basically the rest of the people.
+
+d) To check the stability of clusters, remove a random 5% of the data (by taking a random sample of 95% of the records), and repeat the analysis. Does the same picture emerge?
+
+normalized_data_95 <- scale(mydata[sample(nrow(mydata), nrow(mydata)*.95), ])
+d <- dist(normalized_data_95, method = "euclidean") 
+fit <- hclust(d, method="ward.D2")
+plot(fit)
+
+
+If we compare the earlier plotted dendogram, then it is not as similar. The clusters do change even if we remove 5% of data.
+
+e)Cluster all passengers again using k-means clustering. How many clusters do you want to go with? How did you decide on the number of clusters? Explain your choice on the number of clusters.
+
+fit <- kmeans(normalized_data, centers=3, iter.max=10)
+fit$centers
+##      Balance   Qual_miles  cc1_miles   cc2_miles   cc3_miles Bonus_miles
+## 1 -0.2982130 -0.059284553 -0.6180102  0.03335855 -0.06072785  -0.5193152
+## 2  0.4067701  0.008990352  1.1764397 -0.08241771 -0.03884333   0.8710729
+## 3  1.1947579  0.718557501  0.2442543  0.11341920  1.05765273   0.9915843
+##   Bonus_trans Flight_miles_12mo Flight_trans_12 Days_since_enroll
+## 1  -0.4942441        -0.1843544      -0.1968563        -0.2104666
+## 2   0.7213056        -0.1086584      -0.1208535         0.3658556
+## 3   1.6646144         3.1487903       3.3946273         0.3160019
+##       Award.
+## 1 -0.3522151
+## 2  0.5560910
+## 3  0.9047374
+As we can see from the below elbow curve, from label 3 SSE is diminishing, so we can chose 3 as the best pick for the number of clusters. So I would like to go with3 clusters. This is decided on the basis of SSE change. Basically the idea behind using elbow curve is if the line chart looks like an arm, then the “elbow” on the arm is the value of k that is the best because the subsequent clusters doesn’t make any difference.
+
+## Determine number of clusters
+Cluster_Variability <- matrix(nrow=8, ncol=1)
+for (i in 1:8) Cluster_Variability[i] <- kmeans(normalized_data, centers=i)$tot.withinss
+plot(1:8, Cluster_Variability, type="b", xlab="Number of clusters", ylab="Within groups sum of squares")
+
+
+f)How do the characteristics of the clusters, obtained in Part (e), contrast or validate the finding in Part c above?
+
+Hierarchical Clustering
+
+sapply(unique(groups), clust.centroid, mydata, groups)
+##                            [,1]           [,2]      [,3]
+## Balance           73299.6959799 138061.4000000 131999.50
+## Qual_miles          144.1567839     78.8000000    347.00
+## cc1_miles             2.0537688      3.4666667      2.50
+## cc2_miles             1.0145729      1.0000000      1.00
+## cc3_miles             1.0007538      4.0666667      1.00
+## Bonus_miles       16806.7298995  93927.8666667  65634.25
+## Bonus_trans          11.4819095     28.0666667     69.25
+## Flight_miles_12mo   440.2821608    506.6666667  19960.00
+## Flight_trans_12       1.3246231      1.6000000     49.25
+## Days_since_enroll  4118.6206030   4613.8666667   2200.25
+## Award.                0.3690955      0.5333333      1.00
+K-Means Clustering
+
+fit <- kmeans(mydata, centers=3, iter.max=10)
+t(fit$centers)
+##                              1              2             3
+## Balance           167615.27250 563233.2222222 36759.9743425
+## Qual_miles           266.60375    451.9259259   104.6905067
+## cc1_miles              3.01000      3.2222222     1.7854394
+## cc2_miles              1.00875      1.0370370     1.0153945
+## cc3_miles              1.02750      1.0370370     1.0076972
+## Bonus_miles        33942.17500  53100.8518519 11901.0041693
+## Bonus_trans           17.23500     20.4444444     9.9268762
+## Flight_miles_12mo    915.15000   1758.1234568   309.5686337
+## Flight_trans_12        2.67250      5.7037037     0.9278384
+## Days_since_enroll   4935.15875   6203.7530864  3854.8710712
+## Award.                 0.47875      0.7901235     0.3316228
+From the above two clustering methods, characteristics of the clusters are totally diffrent, even if we take 3 clusters for each types.
+
+g)Which cluster(s) would you target for offers, and what type of offers would you target to customers in that cluster? Include proper reasoning in support of your choice of the cluster(s) and the corresponding offer(s).
+
+fit$size
+## [1]  800   81 3118
+From the above data generated from K-Means clustering, we can see Cluster-1 has around 78% total travelers and cluster 2 has 20% of the travelers. We will target cluster 1 & 2. Cluster 1 contains less frequent or first time travellers, by giving them discount provided they travel more than twice or thrice and introduce more offer if they register or take the membership. Cluster 2 having people who fly economy class or whose frequency is less, they can be given more bonus along with the points, and more bonus if they opt for first class.
+
+2. Analysis of Wine
+Step 2. Do a Principal Components Analysis (PCA) on the data.
+
+a. Enumerate the insights you gathered during your PCA exercise.
+
+input <- read.csv('Y:\\Knowledge Repository\\ISB\\DMG\\IndividualAssignment1\\wine.data', header = TRUE)
+
+mydata <- input[1:178,2:14]
+wine_pca <- princomp(mydata, cor = TRUE, scores = TRUE, covmat = NULL)
+summary(wine_pca)
+## Importance of components:
+##                           Comp.1    Comp.2    Comp.3    Comp.4     Comp.5
+## Standard deviation     2.1692972 1.5801816 1.2025273 0.9586313 0.92370351
+## Proportion of Variance 0.3619885 0.1920749 0.1112363 0.0706903 0.06563294
+## Cumulative Proportion  0.3619885 0.5540634 0.6652997 0.7359900 0.80162293
+##                            Comp.6     Comp.7     Comp.8     Comp.9
+## Standard deviation     0.80103498 0.74231281 0.59033665 0.53747553
+## Proportion of Variance 0.04935823 0.04238679 0.02680749 0.02222153
+## Cumulative Proportion  0.85098116 0.89336795 0.92017544 0.94239698
+##                           Comp.10    Comp.11    Comp.12     Comp.13
+## Standard deviation     0.50090167 0.47517222 0.41081655 0.321524394
+## Proportion of Variance 0.01930019 0.01736836 0.01298233 0.007952149
+## Cumulative Proportion  0.96169717 0.97906553 0.99204785 1.000000000
+plot(wine_pca)
+
+
+As per the above plot generated, we can see from the summary table thorugh cumulative proportion field that almost 85% of data can be acquired from first 6 columns i.e. till Comp6. So first 6 columns can be choosen for the analysis.
+
+We also notice notice that till Comp5 the standard deviation is above 90%.
+
+Therefore it will be fine even if we chose 5 components instead of 6 for the analysis purpose.
+
+b. What are the social and/or business values of those insights, and how the value of those insights can be harnessed???enumerate actionable recommendations for the identified stakeholder in this analysis?
+
+summary(wine_pca, loading = TRUE) 
+## Importance of components:
+##                           Comp.1    Comp.2    Comp.3    Comp.4     Comp.5
+## Standard deviation     2.1692972 1.5801816 1.2025273 0.9586313 0.92370351
+## Proportion of Variance 0.3619885 0.1920749 0.1112363 0.0706903 0.06563294
+## Cumulative Proportion  0.3619885 0.5540634 0.6652997 0.7359900 0.80162293
+##                            Comp.6     Comp.7     Comp.8     Comp.9
+## Standard deviation     0.80103498 0.74231281 0.59033665 0.53747553
+## Proportion of Variance 0.04935823 0.04238679 0.02680749 0.02222153
+## Cumulative Proportion  0.85098116 0.89336795 0.92017544 0.94239698
+##                           Comp.10    Comp.11    Comp.12     Comp.13
+## Standard deviation     0.50090167 0.47517222 0.41081655 0.321524394
+## Proportion of Variance 0.01930019 0.01736836 0.01298233 0.007952149
+## Cumulative Proportion  0.96169717 0.97906553 0.99204785 1.000000000
+## 
+## Loadings:
+##                 Comp.1 Comp.2 Comp.3 Comp.4 Comp.5 Comp.6 Comp.7 Comp.8
+## Alcohol         -0.144 -0.484 -0.207        -0.266  0.214         0.396
+## Malic_acid       0.245 -0.225         0.537         0.537 -0.421       
+## Ash                    -0.316  0.626 -0.214 -0.143  0.154  0.149 -0.170
+## Alcalinity       0.239         0.612               -0.101  0.287  0.428
+## Magnesium       -0.142 -0.300  0.131 -0.352  0.727        -0.323 -0.156
+## Phenols         -0.395         0.146  0.198 -0.149               -0.406
+## Flavanoids      -0.423         0.151  0.152 -0.109               -0.187
+## Nonflavanoid     0.299         0.170 -0.203 -0.501 -0.259 -0.595 -0.233
+## Proanthocyanins -0.313         0.149  0.399  0.137 -0.534 -0.372  0.368
+## Color_intensity        -0.530 -0.137               -0.419  0.228       
+## Hue             -0.297  0.279        -0.428 -0.174  0.106 -0.232  0.437
+## OD280_OD315     -0.376  0.164  0.166  0.184 -0.101  0.266              
+## Proline         -0.287 -0.365 -0.127 -0.232 -0.158  0.120         0.120
+##                 Comp.9 Comp.10 Comp.11 Comp.12 Comp.13
+## Alcohol         -0.509  0.212  -0.226  -0.266         
+## Malic_acid             -0.309           0.122         
+## Ash              0.308         -0.499          -0.141 
+## Alcalinity      -0.200          0.479                 
+## Magnesium       -0.271                                
+## Phenols         -0.286 -0.320   0.304  -0.304  -0.464 
+## Flavanoids             -0.163                   0.832 
+## Nonflavanoid    -0.196  0.216   0.117           0.114 
+## Proanthocyanins  0.209  0.134  -0.237          -0.117 
+## Color_intensity        -0.291           0.604         
+## Hue                    -0.522           0.259         
+## OD280_OD315     -0.137  0.524           0.601  -0.157 
+## Proline          0.576  0.162   0.539
+Genrally looking at the loading the correlation value above 0.5 is deemed important.
+
+Below are the components which are good for health, while some are nutritious, and are found in fruits and vegetables. - Comp.3 is positively correlated with Ash, Alcainilty.
+- Comp.4 is positively related with Malic acid and decreases with Hue. - Comp.5 increases with increase in Magnesium and negatively correlated with non-flavanoids.
+
+Below are the components which are bad for health, i.e. this should not be consumed. - Comp.1 increases with decrease in Flavanoids, OD280/OD315 of diluted wines. - Comp.2 is highly negatively correlated with Alcohol and Color Intensity. - Comp.6 increases with Malic acid but negatively correlated with Proanthocyanins & Color_intensity.
+
+Step 3: Do a cluster analysis, you may try different algorithms or approaches and go with the one that you find most appropriate??? using (i) all chemical measurements (ii) using two most significant PC scores.
+
+normalized_data <- scale(mydata)
+set.seed(1991)
+fit <- kmeans(normalized_data, centers=3, iter.max=10)
+K-Means algorithm is choosen for the analysis.
+
+Cluster_Variability <- matrix(nrow=8, ncol=1)
+for (i in 1:8) Cluster_Variability[i] <- kmeans(normalized_data, centers=i)$tot.withinss
+plot(1:8, Cluster_Variability, type="b", xlab="Number of clusters", ylab="Within groups sum of squares")
+
+
+As per the above elbow curve we can separate the wine data into 3 clusters.
+
+c. Any more insights you come across during the clustering exercise?
+
+t(fit$centers)
+##                           1          2           3
+## Alcohol          0.16444359  0.8328826 -0.92346686
+## Malic_acid       0.86909545 -0.3029551 -0.39293312
+## Ash              0.18637259  0.3636801 -0.49312571
+## Alcalinity       0.52289244 -0.6084749  0.17012195
+## Magnesium       -0.07526047  0.5759621 -0.49032869
+## Phenols         -0.97657548  0.8827472 -0.07576891
+## Flavanoids      -1.21182921  0.9750690  0.02075402
+## Nonflavanoid     0.72402116 -0.5605085 -0.03343924
+## Proanthocyanins -0.77751312  0.5786543  0.05810161
+## Color_intensity  0.93889024  0.1705823 -0.89937699
+## Hue             -1.16151216  0.4726504  0.46050459
+## OD280_OD315     -1.28877614  0.7770551  0.27000254
+## Proline         -0.40594284  1.1220202 -0.75172566
+From the above we can infer that, Cluster 2 is having high alcohol, but components like flavanoids, magnesium, OD280/OD315 are very rich, but as alcohol content is more this makes bad for health. Cluster 3 with negatively correlated with Alcohol and it has very less content of other components which makes this cluster on the safe side when compared with health. Cluster 1 can also be counted on safe side due to high content of Malic acid, less alcohol, phenols, proline etc.
+
+library(MASS)
+parcoord(fit$centers, c('red', 'green', 'blue'))
+
+
+The above graph is plotted in accordance with the presence of measurements in the clusters generated by K-Means. (Red -> Cluster1, Green -> Cluster2, Blue -> Cluster3)
+
+d. Are there clearly separable clusters of wines? How many clusters did you go with? How the clusters obtained in part (i) are different from or similar to clusters obtained in part (ii), qualitatively?
+
+install.packages("fpc", repos = "http://cran.us.r-project.org")
+## Installing package into 'C:/Users/Subhankar/Documents/R/win-library/3.4'
+## (as 'lib' is unspecified)
+## package 'fpc' successfully unpacked and MD5 sums checked
+## 
+## The downloaded binary packages are in
+##  C:\Users\Subhankar\AppData\Local\Temp\RtmpM75A1m\downloaded_packages
+library("fpc")
+## Warning: package 'fpc' was built under R version 3.4.1
+plotcluster(normalized_data, fit$cluster)
+
+
+As it can be seen from the above plot, these are clearly separable clusters. We can go for 3 clusters as mentioned above from elbow curve.
